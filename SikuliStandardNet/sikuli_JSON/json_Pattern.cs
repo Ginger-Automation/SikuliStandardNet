@@ -20,8 +20,8 @@ namespace SikuliStandard.sikuli_JSON
         }
 
         public String imagePath { get; set; }
-        public int offset_x { get; set; }
-        public int offset_y { get; set; }
-        public float similar { get; set; }
+        public string offset_x { get; set; }
+        public string offset_y { get; set; }
+        public string similar { get; set; }
     }
 }

@@ -1,80 +1,175 @@
-﻿using System;
+﻿using SikuliStandardNet;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SikuliStandard.sikuli_UTIL
 {
     public class APILauncher
     {
-        private Process APIProcess;
-        private ProcessStartInfo APIProcessStartInfo;
+        public Process apiProcess;
         public string API_Output;
+        public EventHandler EvtLogMessage { get; set; }
 
         private string APIJar;
         private string WorkingDir;
         private string APIPath;
         private string JarReleaseAddress;
+        public string Error;
+        List<string> commandsList;
+        public bool IsProcessStarted;
+        public static string ProcessId;
 
-        public APILauncher(out string LogMessage, bool Windowless = false)
+        public APILauncher(out string LogMessage, bool WindowLess, bool UseCustomJava, string CustomJavaPath = "")
         {
+            LogMessage = string.Empty;
             APIJar = "sikulirestapi-1.0.jar";
             JarReleaseAddress = "http://sourceforge.net/projects/sikulirestapi/files/sikulirestapi-1.0.jar/download";
-            WorkingDir = Directory.GetCurrentDirectory();
+            WorkingDir = Path.GetDirectoryName(typeof(APILauncher).Assembly.Location);
             APIPath = Path.Combine(WorkingDir, APIJar);
-            if (Windowless)
+            commandsList = new List<string>(3);
+            string customBinPath = Path.Combine(CustomJavaPath, @"bin");
+            string customExePath = Path.Combine(customBinPath, @"java.exe");
+            string customWExePath = Path.Combine(customBinPath, @"javaw.exe");
+            if (WindowLess)
             {
-                APIProcessStartInfo = new ProcessStartInfo("java", "-jar \"" + APIPath + "\"");
+                if (!UseCustomJava)
+                {
+                    commandsList.Add(JavaUtils.JavaExePath);
+                }
+                else
+                {
+                    commandsList.Add(customExePath);
+                }
             }
             else
             {
-                APIProcessStartInfo = new ProcessStartInfo("javaw", "-jar \"" + APIPath + "\"");
+                if (!UseCustomJava)
+                {
+                    commandsList.Add(JavaUtils.JavawExePath);
+                }
+                else
+                {
+                    commandsList.Add(customWExePath);
+                }
             }
-            APIProcess = new Process();
-            APIProcess.StartInfo = APIProcessStartInfo;
+            commandsList.Add("-jar \"" + APIPath);
+            if (!WindowLess)
+            {
+                if (!UseCustomJava)
+                {
+                    commandsList.Add(JavaUtils.JavaBinPath);
+                }
+                else
+                {
+                    commandsList.Add(customBinPath);
+                }
+            }
+            IsProcessStarted = false;
+        }
 
-            if (APIProcess.Start())
+        private void TriggerLogEvent(SikuliErrorModel ex)
+        {
+            if (EvtLogMessage != null)
             {
-                LogMessage = string.Format("API Path - {0} \n Proces Info - Id - {1}, Title - {2}, Start Time : {3}", APIPath, APIProcess.Id, APIProcess.MainWindowTitle, APIProcess.StartTime);
-            }
-            else
-            {
-                LogMessage = string.Format("API Path - {0} \n Error in starting Proces", APIPath);
+                EvtLogMessage(ex, EventArgs.Empty);
             }
         }
 
         public void Start()
         {
             VerifyJarExists();
-            Util.Log.WriteLine("Starting jetty server...");
-            if (APIProcess.HasExited)
-            {
-                APIProcess.Start();
-            }
+            ExecuteCommandSync(commandsList);
         }
 
-        public void Stop()
+        public async Task<bool> Stop()
         {
-            Util.Log.WriteLine("Stopping jetty server...");
-            APIProcess.Kill();
-            Util.Log.WriteLine("Jetty server stopped!");
-            Util.Log.WriteLine("Client log for this test run can be located at: " + Util.Log.LogPath);
-            Util.Log.WriteLine("Exiting...");
+            if (apiProcess != null)
+            {
+                apiProcess.Close();
+            }
+            return true;
+        }
+
+        public void ForceClose()
+        {
+            apiProcess.Kill();
         }
 
         public void VerifyJarExists()
         {
+            SikuliErrorModel ex = new SikuliErrorModel();
             if (File.Exists(APIPath))
             {
-                Util.Log.WriteLine("Jar already downloaded, launching jetty server...");
+                ex.Message = "Jar Found on Path: " + APIPath;
             }
             else
             {
-                Util.Log.WriteLine("Jar not downloaded, downloading jetty server jar from SourceForge...");
+                ex.Message = "Jar Not Found on Path: " + APIPath;
                 WebClient client = new WebClient();
                 client.DownloadFile(JarReleaseAddress, APIPath);
-                Util.Log.WriteLine("File downloaded!");
+            }
+            TriggerLogEvent(ex);
+        }
+
+        public void ExecuteCommandSync(object command)
+        {
+            SikuliErrorModel ex = new SikuliErrorModel();
+            try
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(ProcessId) && Process.GetProcessById(int.Parse(ProcessId)) != null)
+                    {
+                        return;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Process.GetProcessById sometimes throws exception if it cannot find a process instead of returning null
+                }
+                List<string> commnadConfigs = (List<string>)command;
+                //ExInfo += "Executing Command: " + commnadConfigs[0] + " " + commnadConfigs[1] + Environment.NewLine;
+
+                apiProcess = new Process();
+                if (commnadConfigs.Count > 2)
+                {
+                    apiProcess.StartInfo.FileName = commnadConfigs[0];
+                    apiProcess.StartInfo.Arguments = commnadConfigs[1];
+                    apiProcess.StartInfo.WorkingDirectory = commnadConfigs[2];
+                }
+                else
+                {
+                    apiProcess.StartInfo = new ProcessStartInfo(commnadConfigs[0], commnadConfigs[1]);
+                }
+                //apiProcess.StartInfo.UseShellExecute = false;
+                //apiProcess.StartInfo.RedirectStandardOutput = true;
+                //apiProcess.StartInfo.RedirectStandardError = true;
+                IsProcessStarted = apiProcess.Start();
+                if (IsProcessStarted)
+                {
+                    ex.Message = "Jar started on Path: " + APIPath + " Process id is: " + apiProcess.Id.ToString();
+                    TriggerLogEvent(ex);
+                    ProcessId = apiProcess.Id.ToString();
+                }
+            }
+            catch (Exception e)
+            {
+                Error = "Failed to execute the command, Error: " + e.Message;
+                ex.Message = Error;
+                ex.Exception = e;
+                TriggerLogEvent(ex);
             }
         }
+    }
+
+    public class SikuliErrorModel
+    {
+        public Exception Exception;
+        public string Message;
     }
 }

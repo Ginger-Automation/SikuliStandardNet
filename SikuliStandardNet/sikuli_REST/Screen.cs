@@ -165,6 +165,14 @@ namespace SikuliStandard.sikuli_REST
             FailIfResultNotPASS(jResult);
         }
 
+        public void GetText(Pattern pattern)
+        {
+            json_GetText json_GetText = new json_GetText(pattern.ToJsonPattern());
+            string jsonGetText = JsonConvert.SerializeObject(json_GetText);
+            json_Result jResult = json_Result.getJResult(MakeRequest("text", jsonGetText));
+            FailIfResultNotPASS(jResult);
+        }
+
         /// <summary>
         /// Method to make a request to the service with the specified URL extension and the specified Json object.
         /// </summary>
@@ -173,7 +181,6 @@ namespace SikuliStandard.sikuli_REST
         /// <returns></returns>
         private String MakeRequest(String requestURLExtension, String jsonObject)
         {
-            Util.Log.WriteLine("Making Request to Service: " + serviceURL + requestURLExtension + " POST: " + jsonObject);
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(serviceURL + requestURLExtension);
             request.Accept = "application/json";
             request.Method = "POST";
@@ -188,7 +195,6 @@ namespace SikuliStandard.sikuli_REST
             {
                 resultString = reader.ReadToEnd();
             }
-            Util.Log.WriteLine(resultString);
             return resultString;
         }
         /// <summary>
@@ -197,7 +203,6 @@ namespace SikuliStandard.sikuli_REST
         /// <param name="jResult">the json_Result to check</param>
         public void FailIfResultNotPASS(json_Result jResult)
         {
-            Util.Log.WriteLine("Result: " + jResult.result + " Message: " + jResult.message + " Stacktrace: " + jResult.stacktrace);
             if (!jResult.ToActionResult().Equals(ActionResult.PASS))
             {
                 throw new SikuliActionException(jResult.ToActionResult(), jResult.message);

@@ -29,22 +29,22 @@ namespace SikuliStandard.sikuli_REST
         /// <summary>
         /// The percentage similarity that the tool looks for when searching for the pattern. 0.7 is default (70%)
         /// </summary>
-        public Double Similar { get; set; }
+        public string Similar { get; set; }
 
-        public Pattern() : this("", new Point(0, 0), 0.7) { }
-        public Pattern(String imagePath) : this(imagePath, new Point(0, 0), 0.7) { }
-        public Pattern(String imagePath, Point offset) : this(imagePath, offset, 0.7) { }
-        public Pattern(String imagePath, Double similar) : this(imagePath, new Point(0, 0), similar) { }
+        public Pattern() : this("", new Point(0, 0), "0.7") { }
+        public Pattern(String imagePath) : this(imagePath, new Point(0, 0), " 0.7") { }
+        //public Pattern(String imagePath, Point offset) : this(imagePath, offset, 0.7) { }
+        //public Pattern(String imagePath, Double similar) : this(imagePath, new Point(0, 0), similar) { }
         /// <summary>
         /// Instantiates a new instance of the Pattern object, to be used by the tool to find the specified image on the screen.
         /// </summary>
         /// <param name="imagePath">The path to the image used in this pattern object; usually will be in .png format</param>
         /// <param name="offset">The target offset of the image, going from the center as 0,0, which is the default</param>
         /// <param name="similar">The percentage similarity that the tool looks for when searching for the pattern.  0.7 is the default (70%)</param>
-        public Pattern(String imagePath, Point offset, Double similar)
+        public Pattern(String imagePath, Point offset, string similar)
         {
             ImagePath = imagePath;
-            Offset = offset;
+            //Offset = offset;
             Similar = similar;
         }
         /// <summary>
@@ -55,9 +55,9 @@ namespace SikuliStandard.sikuli_REST
         {
             json_Pattern jPattern = new json_Pattern();
             jPattern.imagePath = this.ImagePath;
-            jPattern.offset_x = this.Offset.X;
-            jPattern.offset_y = this.Offset.Y;
-            jPattern.similar = (float)this.Similar;
+            jPattern.offset_x = "0";
+            jPattern.offset_y = "0";
+            jPattern.similar = "0";
             return jPattern;
         }
     }

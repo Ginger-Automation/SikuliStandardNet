@@ -12,6 +12,9 @@
 	  <None Update="sikulirestapi-1.0.jar">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
+	  <None Update="sikulixapi-2.0.2.jar">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 
 </Project>
